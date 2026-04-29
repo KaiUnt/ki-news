@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}Artikel – KI-News Briefing{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-slate-900">Artikel</h1>
+  <span class="text-sm text-slate-400">{{ articles | length }} Einträge</span>
+</div>
+
+<!-- Datumsfilter -->
+<div class="mb-4 flex flex-wrap gap-2 items-center">
+  <span class="text-xs text-slate-500 font-medium uppercase tracking-wide mr-1">Zeitraum:</span>
+  <a href="/articles{% if q %}?q={{ q }}{% endif %}"
+     class="text-xs px-3 py-1.5 rounded-full border transition-colors
+            {% if not date_filter or date_filter == '' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white text-slate-600 border-slate-300 hover:border-indigo-400{% endif %}">
+    Heute
+  </a>
+  <a href="/articles?date_filter=all{% if q %}&q={{ q }}{% endif %}"
+     class="text-xs px-3 py-1.5 rounded-full border transition-colors
+            {% if date_filter == 'all' %}bg-indigo-600 text-white border-indigo-600{% else %}bg-white text-slate-600 border-slate-300 hover:border-indigo-400{% endif %}">
+    Alle
+  </a>
+  <!-- Datumspicker für bestimmten Tag -->
+  <form method="get" action="/articles" class="flex items-center gap-1">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    <input type="date" name="date_filter" value="{{ selected_date if date_filter and date_filter != 'all' else today }}"
+      max="{{ today }}"
+      class="text-xs border border-slate-300 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+    <button type="submit"
+      class="text-xs bg-white border border-slate-300 text-slate-600 px-3 py-1.5 rounded-full hover:border-indigo-400 transition-colors">
+      ↵
+    </button>
+  </form>
+</div>
+
+<!-- Suche -->
+<form method="get" action="/articles" class="mb-6 flex gap-2">
+  {% if date_filter %}<input type="hidden" name="date_filter" value="{{ date_filter }}">{% endif %}
+  <input name="q" value="{{ q }}" placeholder="Titel durchsuchen …"
+    class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+  <button type="submit"
+    class="bg-brand-700 text-white text-sm px-4 py-2 rounded-lg hover:bg-brand-900 transition-colors">
+    Suchen
+  </button>
+</form>
+
+{% if articles %}
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+      <tr>
+        <th class="px-4 py-3 text-left">Titel</th>
+        <th class="px-4 py-3 text-left">Quelle</th>
+        <th class="px-4 py-3 text-left">Datum</th>
+        <th class="px-4 py-3 text-center">Relevanz</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for article in articles %}
+      <tr class="hover:bg-slate-50 transition-colors">
+        <td class="px-4 py-3">
+          <a href="{{ article.url }}" target="_blank" rel="noopener"
+            class="font-medium text-slate-800 hover:text-indigo-600 line-clamp-2">{{ article.title }}</a>
+        </td>
+        <td class="px-4 py-3 text-slate-500 text-xs">
+          {{ article.source.name if article.source else '–' }}
+        </td>
+        <td class="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
+          {{ article.published_at.strftime('%d.%m.%Y') if article.published_at else
+             article.fetched_at.strftime('%d.%m.%Y') if article.fetched_at else '–' }}
+        </td>
+        <td class="px-4 py-3 text-center">
+          {% if article.analysis %}
+          <span class="font-semibold {{ 'text-green-600' if article.analysis.relevance_score >= 4 else ('text-orange-500' if article.analysis.relevance_score == 3 else 'text-slate-400') }}">
+            {{ article.analysis.relevance_score }}/5
+          </span>
+          {% else %}
+          <span class="text-slate-300">–</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="text-center py-20 text-slate-400">
+  <div class="text-5xl mb-4">📄</div>
+  <p class="text-lg font-medium text-slate-500">
+    {% if q %}Keine Artikel für „{{ q }}" gefunden.{% else %}Noch keine Artikel gespeichert.{% endif %}
+  </p>
+  <p class="text-sm mt-2">
+    {% if date_filter == 'all' %}
+      Noch keine Artikel in der Datenbank.
+    {% elif selected_date %}
+      Keine Artikel für {{ selected_date }}.
+      <a href="/articles?date_filter=all" class="text-indigo-600 hover:underline">Alle Artikel anzeigen</a>
+    {% else %}
+      Noch keine Artikel gespeichert.
+    {% endif %}
+  </p>
+  <p class="text-sm mt-2 text-slate-400">Artikel werden über den RSS-Fetcher befüllt.</p>
+</div>
+{% endif %}
+{% endblock %}

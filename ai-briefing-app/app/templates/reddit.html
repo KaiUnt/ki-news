@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}Reddit – KI-News Briefing{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+      <span class="text-orange-500">&#9650;</span> Reddit Community
+    </h1>
+    <p class="text-slate-500 text-sm mt-1">KI-Diskussionen aus der Community</p>
+  </div>
+  <!-- Refresh-Button -->
+  <form method="post" action="/run-reddit">
+    {% if reddit_configured %}
+    <button type="submit"
+      class="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors">
+      &#9654; Reddit aktualisieren
+    </button>
+    {% else %}
+    <span class="text-xs text-slate-400 bg-slate-100 px-4 py-2 rounded-lg">
+      ⚠ Reddit API nicht konfiguriert
+    </span>
+    {% endif %}
+  </form>
+</div>
+
+{% if request.query_params.get('updated') %}
+<div class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3 mb-6 flex items-center gap-2">
+  <span class="text-lg">✓</span>
+  <span class="text-sm font-medium">Reddit erfolgreich aktualisiert.</span>
+</div>
+{% endif %}
+
+{% if request.query_params.get('run_error') %}
+<div class="bg-red-50 border border-red-200 text-red-800 rounded-xl px-5 py-3 mb-6 flex items-center gap-2">
+  <span class="text-lg">⚠</span>
+  <span class="text-sm font-medium">Reddit-Aktualisierung teilweise fehlgeschlagen – bitte Logs prüfen.</span>
+</div>
+{% endif %}
+
+<!-- Hinweis wenn Reddit nicht konfiguriert -->
+{% if not reddit_configured %}
+<div class="bg-orange-50 border border-orange-200 text-orange-800 rounded-xl px-5 py-4 mb-6">
+  <div class="font-semibold mb-1">Reddit API nicht konfiguriert</div>
+  <p class="text-sm">Trage <code class="bg-orange-100 px-1 rounded">REDDIT_CLIENT_ID</code> und
+    <code class="bg-orange-100 px-1 rounded">REDDIT_CLIENT_SECRET</code> in die
+    <code class="bg-orange-100 px-1 rounded">.env</code> Datei ein.
+    App anlegen unter:
+    <a href="https://www.reddit.com/prefs/apps" target="_blank" rel="noopener"
+      class="underline font-medium">reddit.com/prefs/apps</a>
+    (Typ: script)
+  </p>
+</div>
+{% endif %}
+
+<!-- Filter-Leiste -->
+<div class="bg-white border border-slate-200 rounded-xl p-4 mb-6 flex flex-wrap gap-4 items-end">
+
+  <!-- Datumsfilter -->
+  <div class="flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-medium uppercase tracking-wide">Zeitraum</span>
+    <div class="flex gap-1 flex-wrap">
+      <a href="/reddit{% if selected_subreddit %}?subreddit={{ selected_subreddit }}{% endif %}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if not date_filter or date_filter == '' %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        Heute
+      </a>
+      <a href="/reddit?date_filter=all{% if selected_subreddit %}&subreddit={{ selected_subreddit }}{% endif %}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if date_filter == 'all' %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        Alle
+      </a>
+      <form method="get" action="/reddit" class="flex items-center gap-1">
+        {% if selected_subreddit %}<input type="hidden" name="subreddit" value="{{ selected_subreddit }}">{% endif %}
+        {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+        <input type="date" name="date_filter" value="{{ selected_date if date_filter and date_filter != 'all' else today }}"
+          max="{{ today }}"
+          class="text-xs border border-slate-300 rounded-full px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-400" />
+        <button type="submit" class="text-xs bg-white border border-slate-300 text-slate-600 px-3 py-1.5 rounded-full hover:border-orange-400 transition-colors">↵</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Subreddit-Filter -->
+  {% if subreddits %}
+  <div class="flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-medium uppercase tracking-wide">Subreddit</span>
+    <div class="flex gap-1 flex-wrap">
+      <a href="/reddit?date_filter={{ date_filter }}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if not selected_subreddit %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        Alle
+      </a>
+      {% for sub in subreddits %}
+      <a href="/reddit?subreddit={{ sub }}&date_filter={{ date_filter }}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if selected_subreddit == sub %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        r/{{ sub }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Sort-Filter -->
+  <div class="flex flex-col gap-1">
+    <span class="text-xs text-slate-500 font-medium uppercase tracking-wide">Sort</span>
+    <div class="flex gap-1">
+      <a href="/reddit?date_filter={{ date_filter }}{% if selected_subreddit %}&subreddit={{ selected_subreddit }}{% endif %}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if not selected_sort %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        Alle
+      </a>
+      <a href="/reddit?sort=hot&date_filter={{ date_filter }}{% if selected_subreddit %}&subreddit={{ selected_subreddit }}{% endif %}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if selected_sort == 'hot' %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        🔥 Hot
+      </a>
+      <a href="/reddit?sort=new&date_filter={{ date_filter }}{% if selected_subreddit %}&subreddit={{ selected_subreddit }}{% endif %}"
+         class="text-xs px-3 py-1.5 rounded-full border transition-colors
+                {% if selected_sort == 'new' %}bg-orange-500 text-white border-orange-500{% else %}bg-white text-slate-600 border-slate-300 hover:border-orange-400{% endif %}">
+        ✨ New
+      </a>
+    </div>
+  </div>
+
+  <!-- Suche -->
+  <form method="get" action="/reddit" class="flex gap-2 flex-1 min-w-48">
+    {% if date_filter %}<input type="hidden" name="date_filter" value="{{ date_filter }}">{% endif %}
+    {% if selected_subreddit %}<input type="hidden" name="subreddit" value="{{ selected_subreddit }}">{% endif %}
+    {% if selected_sort %}<input type="hidden" name="sort" value="{{ selected_sort }}">{% endif %}
+    <input name="q" value="{{ q }}" placeholder="Titel durchsuchen …"
+      class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400" />
+    <button type="submit"
+      class="bg-orange-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
+      Suchen
+    </button>
+  </form>
+</div>
+
+<!-- Anzahl -->
+<div class="flex items-center justify-between mb-4">
+  <span class="text-sm text-slate-500">{{ posts | length }} Posts</span>
+</div>
+
+{% if posts %}
+<div class="grid gap-4">
+  {% for post in posts %}
+  <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+
+    <!-- Header: Subreddit + Sort-Badge + Score -->
+    <div class="flex items-start justify-between gap-3 mb-3">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+          r/{{ post.subreddit }}
+        </span>
+        {% if post.sort_type == 'hot' %}
+        <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">🔥 hot</span>
+        {% else %}
+        <span class="text-xs text-blue-600 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">✨ new</span>
+        {% endif %}
+        {% if post.flair %}
+        <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">{{ post.flair }}</span>
+        {% endif %}
+        {% if post.analysis and post.analysis.category %}
+        <span class="text-xs text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+          {{ post.analysis.category }}
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Community-Metriken -->
+      <div class="flex items-center gap-3 text-xs text-slate-400 whitespace-nowrap shrink-0">
+        <span class="font-semibold text-orange-500">▲ {{ post.score }}</span>
+        <span>{{ (post.upvote_ratio * 100) | int }}%</span>
+        <span>💬 {{ post.num_comments }}</span>
+      </div>
+    </div>
+
+    <!-- Titel -->
+    <h3 class="font-semibold text-slate-800 mb-2 leading-snug">
+      {% if post.permalink %}
+      <a href="{{ post.permalink }}" target="_blank" rel="noopener"
+        class="hover:text-orange-600 transition-colors">{{ post.title }}</a>
+      {% else %}
+      {{ post.title }}
+      {% endif %}
+    </h3>
+
+    <!-- KI-Analyse -->
+    {% if post.analysis %}
+    <div class="mt-3 pt-3 border-t border-slate-100">
+      <div class="flex items-center gap-3 mb-2">
+        <!-- Relevanz-Score -->
+        <span class="text-xs font-medium {{ 'text-green-600' if post.analysis.relevance_score >= 4 else ('text-orange-500' if post.analysis.relevance_score == 3 else 'text-slate-400') }}">
+          Relevanz {{ post.analysis.relevance_score }}/5
+        </span>
+        <!-- Priorität -->
+        {% if post.analysis.priority %}
+        <span class="text-xs px-2 py-0.5 rounded-full
+          {% if post.analysis.priority == 'hoch' %}bg-red-50 text-red-600 border border-red-200
+          {% elif post.analysis.priority == 'mittel' %}bg-yellow-50 text-yellow-700 border border-yellow-200
+          {% else %}bg-slate-100 text-slate-500{% endif %}">
+          {{ post.analysis.priority }}
+        </span>
+        {% endif %}
+        <!-- Community-Signal -->
+        {% if post.analysis.community_signal %}
+        <span class="text-xs text-purple-600 bg-purple-50 border border-purple-200 px-2 py-0.5 rounded-full">
+          {{ post.analysis.community_signal }}
+        </span>
+        {% endif %}
+      </div>
+      {% if post.analysis.summary_de %}
+      <p class="text-sm text-slate-600 leading-relaxed">{{ post.analysis.summary_de }}</p>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="mt-2">
+      <span class="text-xs text-slate-300 italic">Noch nicht analysiert</span>
+    </div>
+    {% endif %}
+
+    <!-- Links -->
+    <div class="mt-3 flex gap-3 text-xs">
+      {% if post.permalink %}
+      <a href="{{ post.permalink }}" target="_blank" rel="noopener"
+        class="text-orange-500 hover:underline font-medium">→ Reddit</a>
+      {% endif %}
+      {% if post.url and post.url != post.permalink %}
+      <a href="{{ post.url }}" target="_blank" rel="noopener"
+        class="text-indigo-500 hover:underline">→ Quelle</a>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="text-center py-20 text-slate-400">
+  <div class="text-6xl mb-4">📭</div>
+  <h2 class="text-xl font-semibold text-slate-600 mb-2">Keine Reddit-Posts vorhanden</h2>
+  {% if reddit_configured %}
+  <p class="text-sm mb-6">Klicke auf „Reddit aktualisieren" um Posts zu laden.</p>
+  {% else %}
+  <p class="text-sm mb-6">Bitte Reddit API konfigurieren (siehe Hinweis oben).</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

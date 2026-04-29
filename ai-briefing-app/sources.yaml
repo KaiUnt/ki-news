@@ -1,0 +1,150 @@
+sources:
+  # ── Hauptquellen (Priorität 5) ─────────────────────────────────────────
+  - name: "OpenAI Blog"
+    url: "https://openai.com/news/rss.xml"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 5
+
+  - name: "VentureBeat AI"
+    url: "https://venturebeat.com/category/ai/feed/"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 5
+
+  - name: "The Decoder"
+    url: "https://the-decoder.de/feed/"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "de"
+    priority: 5
+
+  - name: "Microsoft AI Blog"
+    url: "https://blogs.microsoft.com/ai/feed/"
+    type: "RSS"
+    category: "Microsoft Copilot"
+    language: "en"
+    priority: 5
+
+  # ── Hohe Priorität (4) ─────────────────────────────────────────────────
+  - name: "Microsoft Power Platform Blog"
+    url: "https://powerautomate.microsoft.com/en-us/blog/feed/"
+    type: "RSS"
+    category: "Power Platform"
+    language: "en"
+    priority: 4
+
+  - name: "Google DeepMind Blog"
+    url: "https://deepmind.google/blog/rss.xml"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 4
+
+  - name: "Heise Online"
+    url: "https://www.heise.de/rss/heise-atom.xml"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "de"
+    priority: 4
+
+  - name: "MIT Technology Review AI"
+    url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    type: "RSS"
+    category: "Forschung"
+    language: "en"
+    priority: 4
+
+  # ── Mittlere Priorität (3) ─────────────────────────────────────────────
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    type: "RSS"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 3
+
+  - name: "arXiv cs.AI"
+    url: "http://arxiv.org/rss/cs.AI"
+    type: "RSS"
+    category: "Forschung"
+    language: "en"
+    priority: 3
+
+  - name: "arXiv cs.CL"
+    url: "http://arxiv.org/rss/cs.CL"
+    type: "RSS"
+    category: "Forschung"
+    language: "en"
+    priority: 3
+
+  # ── Niedrige Priorität (2) ─────────────────────────────────────────────
+  - name: "Hacker News (Best)"
+    url: "https://hnrss.org/best"
+    type: "RSS"
+    category: "Tools & Produktivität"
+    language: "en"
+    priority: 2
+
+  - name: "EU AI Act News"
+    url: "https://artificialintelligenceact.eu/feed/"
+    type: "RSS"
+    category: "Datenschutz & Regulierung"
+    language: "en"
+    priority: 2
+
+# ── Reddit-Quellen ─────────────────────────────────────────────────────────────
+# type: Reddit  →  wird vom reddit_fetcher verarbeitet (nicht RSS)
+# subreddit: Name ohne r/ Prefix
+# post_limit: Anzahl Posts pro Sort-Typ (hot + new getrennt)
+# sort: [hot, new]  – beide werden täglich geholt
+
+reddit:
+  - name: "r/artificial"
+    subreddit: "artificial"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 5
+    post_limit: 10
+    sort: [hot, new]
+
+  - name: "r/MachineLearning"
+    subreddit: "MachineLearning"
+    category: "Forschung"
+    language: "en"
+    priority: 5
+    post_limit: 10
+    sort: [hot, new]
+
+  - name: "r/LocalLLaMA"
+    subreddit: "LocalLLaMA"
+    category: "Tools & Produktivität"
+    language: "en"
+    priority: 4
+    post_limit: 10
+    sort: [hot, new]
+
+  - name: "r/ChatGPT"
+    subreddit: "ChatGPT"
+    category: "KI-Modelle"
+    language: "en"
+    priority: 4
+    post_limit: 10
+    sort: [hot, new]
+
+  - name: "r/MicrosoftCopilot"
+    subreddit: "MicrosoftCopilot"
+    category: "Microsoft Copilot"
+    language: "en"
+    priority: 4
+    post_limit: 10
+    sort: [hot, new]
+
+  - name: "r/PowerAutomate"
+    subreddit: "PowerAutomate"
+    category: "Power Platform"
+    language: "en"
+    priority: 3
+    post_limit: 10
+    sort: [hot, new]

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ briefing.title or briefing.briefing_date.strftime('%d.%m.%Y') }} – KI-News Briefing{% endblock %}
+
+{% block content %}
+<div class="flex items-center gap-3 mb-6">
+  <a href="/briefings" class="text-indigo-500 hover:underline text-sm">← Archiv</a>
+  <h1 class="text-2xl font-bold text-slate-900">
+    {{ briefing.title or ('KI Briefing – ' + briefing.briefing_date.strftime('%d.%m.%Y')) }}
+  </h1>
+</div>
+
+{% if briefing.daily_summary %}
+<div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 mb-6">
+  <div class="text-xs font-semibold text-indigo-500 uppercase tracking-wider mb-2">Kurzfazit</div>
+  <p class="text-slate-700 leading-relaxed">{{ briefing.daily_summary }}</p>
+</div>
+{% endif %}
+
+{% for section_name, icon in [('Top-Meldungen', '📰'), ('Für Kai', '⭐'), ('Nur beobachten', '👁'), ('Hype', '📣')] %}
+  {% if items_by_section.get(section_name) %}
+  <section class="mb-8">
+    <h2 class="text-lg font-semibold text-slate-700 mb-3">{{ icon }} {{ section_name }}</h2>
+    <div class="grid gap-4">
+      {% for item in items_by_section[section_name] %}
+      {% include "_briefing_item_card.html" %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+{% endfor %}
+{% endblock %}

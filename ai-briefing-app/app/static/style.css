@@ -1,0 +1,14 @@
+/* Minimale Custom-Styles – Tailwind erledigt den Rest */
+
+/* Verhindert Überlauf langer URLs in der Quelltabelle */
+td a {
+  word-break: break-word;
+}
+
+/* Zeilenbeschränkung für Texte */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

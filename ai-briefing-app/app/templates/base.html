@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}KI-News Briefing{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { brand: { 900: '#1e1b4b', 700: '#3730a3', 500: '#6366f1', 100: '#e0e7ff' } } } }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Navigation -->
+  <nav class="bg-brand-900 text-white shadow-lg">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <a href="/" class="text-lg font-bold tracking-tight flex items-center gap-2">
+        <span class="text-2xl">🤖</span>
+        <span>KI-News Briefing</span>
+      </a>
+      <div class="flex gap-6 text-sm font-medium">
+        <a href="/" class="hover:text-indigo-200 transition-colors">Dashboard</a>
+        <a href="/briefings" class="hover:text-indigo-200 transition-colors">Archiv</a>
+        <a href="/sources" class="hover:text-indigo-200 transition-colors">Quellen</a>
+        <a href="/articles" class="hover:text-indigo-200 transition-colors">Artikel</a>
+        <a href="/reddit" class="hover:text-indigo-200 transition-colors">Reddit</a>
+        <a href="/health" class="hover:text-indigo-200 transition-colors text-slate-400">Status</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main class="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center text-slate-400 text-xs py-5 border-t border-slate-200">
+    KI-News Briefing &mdash; täglich kompakt &mdash; nur für interne Nutzung
+  </footer>
+
+</body>
+</html>

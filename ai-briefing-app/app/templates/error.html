@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Fehler – KI-News Briefing{% endblock %}
+
+{% block content %}
+<div class="text-center py-20">
+  <div class="text-5xl mb-4">⚠️</div>
+  <h1 class="text-xl font-semibold text-slate-700 mb-2">Datenbankfehler</h1>
+  <p class="text-sm text-slate-500 max-w-lg mx-auto mb-6">{{ error }}</p>
+  <p class="text-xs text-slate-400">
+    Bitte prüfe die <code class="bg-slate-100 px-1 rounded">.env</code>-Datei und stelle sicher,
+    dass <strong>DATABASE_URL</strong> korrekt gesetzt ist.
+  </p>
+  <a href="/" class="mt-6 inline-block text-indigo-500 hover:underline text-sm">← Zurück</a>
+</div>
+{% endblock %}
