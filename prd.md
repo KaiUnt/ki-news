@@ -120,6 +120,22 @@ Pro Subreddit: Top-10 Posts, Sort: hot + new täglich
 
 ⸻
 
+4.3c arXiv / Research-Pipeline
+
+arXiv-Artikel werden als **eigene Pipeline** behandelt und **nicht** in die Mainstream-Analyse und das Tagesbriefing eingemischt.
+
+Begründung: arXiv liefert täglich 200–300+ Papers (Grundlagenforschung), die thematisch und inhaltlich eine andere Zielgruppe ansprechen als tagesaktuelle KI-News. Eine Vermischung würde das Briefing verwässern.
+
+Umsetzung:
+* `type: "arXiv"` in `sources.yaml` flaggt eine Quelle als Research-Quelle
+* `ai_analyzer.py` schließt arXiv-Quellen aus (keine OpenAI-Kosten)
+* `briefing_generator.py` schließt arXiv-Quellen aus
+* Eigene Seite `/research` mit collapsible Cards und vollem Abstract (kein extra KI nötig – Abstract ist bereits im RSS enthalten)
+* Keyword-Highlighting: Papers mit Begriffen wie `agent`, `LLM`, `RAG`, `multimodal`, `reasoning` etc. werden als ⭐ Highlight markiert
+* Dashboard-Widget: Top 5 Highlight-Papers des Tages direkt sichtbar
+
+⸻
+
 4.4 Artikel-Sammlung
 
 Speichern:
@@ -197,8 +213,8 @@ Cronjob:
 Phasen pro Lauf:
 1. Quellen aus sources.yaml in DB synchronisieren
 2. RSS-Feeds abrufen, Artikel speichern
-3. Artikel via OpenAI analysieren
-4. Tagesbriefing generieren
+3. Mainstream-Artikel via OpenAI analysieren (arXiv ausgeschlossen)
+4. Tagesbriefing generieren (arXiv ausgeschlossen)
 5. Reddit-Posts abrufen (PRAW, read-only)
 6. Reddit-Posts via OpenAI analysieren
 
@@ -291,15 +307,16 @@ ai-briefing-app/
 │   ├── services/
 │   │   ├── source_loader.py
 │   │   ├── source_fetcher.py
-│   │   ├── ai_analyzer.py
-│   │   ├── briefing_generator.py
-│   │   ├── reddit_fetcher.py      ← NEU: PRAW-basierter Reddit-Fetcher
-│   │   └── reddit_analyzer.py    ← NEU: KI-Analyse Reddit-Posts
+│   │   ├── ai_analyzer.py        ← Mainstream-Analyse (exkl. arXiv)
+│   │   ├── briefing_generator.py ← Tagesbriefing (exkl. arXiv)
+│   │   ├── reddit_fetcher.py     ← NEU: PRAW-basierter Reddit-Fetcher
+│   │   └── reddit_analyzer.py   ← NEU: KI-Analyse Reddit-Posts
 │   │
 │   ├── templates/
 │   │   ├── base.html
-│   │   ├── dashboard.html
-│   │   ├── reddit.html           ← NEU: eigener Reddit-Tab
+│   │   ├── dashboard.html        ← inkl. Research-Widget
+│   │   ├── reddit.html           ← eigener Reddit-Tab
+│   │   ├── research.html         ← NEU: arXiv Research-Seite
 │   │   └── ...
 │   └── static/
 │

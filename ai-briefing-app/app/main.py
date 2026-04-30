@@ -3,14 +3,16 @@ KI-News Briefing – FastAPI Hauptanwendung
 Phase 1: Grundgerüst, Dashboard, Quellenverwaltung, Supabase-Anbindung
 """
 
+import secrets
 from contextlib import asynccontextmanager
 from datetime import date, datetime
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Optional, Any
 
-from fastapi import FastAPI, Request, HTTPException, Form, status
+from fastapi import FastAPI, Request, HTTPException, Form, status, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -86,6 +88,42 @@ def _db_error_response(request: Request, error: Exception) -> HTMLResponse:
     )
 
 
+_http_basic = HTTPBasic(auto_error=False)
+
+
+def _require_run_auth(
+    credentials: Optional[HTTPBasicCredentials] = Depends(_http_basic),
+) -> None:
+    """Erzwingt HTTP Basic Auth auf /run-Endpunkten – nur wenn APP_ENV=production und RUN_PASSWORD gesetzt."""
+    if not settings.run_auth_enabled:
+        return  # Dev-Modus: kein Auth nötig
+    if credentials is None or not secrets.compare_digest(
+        credentials.password.encode(), settings.RUN_PASSWORD.encode()
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Zugangsdaten erforderlich",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+
+
+# Keywords die für Practitioner besonders relevant sind (für Research-Highlighting)
+_RESEARCH_HIGHLIGHT_KEYWORDS = [
+    "agent", "agentic", "llm", "large language model", "rag", "retrieval",
+    "multimodal", "reasoning", "fine-tun", "instruction", "alignment",
+    "rlhf", "gpt", "claude", "gemini", "mistral", "embedding", "vector",
+    "tool use", "function call", "chain-of-thought", "prompt",
+]
+
+
+def _highlight_research(papers: list) -> list:
+    """Markiert Papers als 'highlighted' wenn Titel/Abstract relevante Keywords enthält."""
+    for p in papers:
+        text = ((p.title or "") + " " + (p.summary_raw or "")).lower()
+        p.highlighted = any(kw in text for kw in _RESEARCH_HIGHLIGHT_KEYWORDS)
+    return papers
+
+
 # ── Health ─────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -121,10 +159,47 @@ def dashboard(request: Request):
             for item in raw_items:
                 items_by_section.setdefault(item.get("section", ""), []).append(_to_ns(item))
 
+        # Research-Widget: Top 5 arXiv-Paper von heute (keyword-highlighted bevorzugt)
+        today_str = date.today().isoformat()
+        arxiv_sources_res = sb.table("sources").select("id, name").eq("type", "arXiv").execute()
+        arxiv_source_ids = [r["id"] for r in arxiv_sources_res.data]
+        arxiv_sources_map = {r["id"]: r["name"] for r in arxiv_sources_res.data}
+        research_papers = []
+        if arxiv_source_ids:
+            rp_res = (
+                sb.table("articles")
+                .select("id, title, url, published_at, summary_raw, source_id")
+                .eq("is_duplicate", False)
+                .in_("source_id", arxiv_source_ids)
+                .gte("fetched_at", f"{today_str}T00:00:00+00:00")
+                .lt("fetched_at", f"{today_str}T23:59:59+00:00")
+                .order("published_at", desc=True)
+                .limit(100)
+                .execute()
+            )
+            papers = [_to_ns(a) for a in rp_res.data]
+            for p in papers:
+                p.source_name = arxiv_sources_map.get(p.source_id, "arXiv")
+            papers = _highlight_research(papers)
+            # Highlighted zuerst, dann Rest; insgesamt max 5
+            highlighted = [p for p in papers if p.highlighted]
+            rest = [p for p in papers if not p.highlighted]
+            research_papers = (highlighted + rest)[:5]
+
         return templates.TemplateResponse(request, "dashboard.html", context={
             "briefing": briefing,
             "items_by_section": items_by_section,
             "today": date.today(),
+            "research_papers": research_papers,
+            "research_total": len(arxiv_source_ids) and (
+                sb.table("articles")
+                .select("id", count="exact")
+                .eq("is_duplicate", False)
+                .in_("source_id", arxiv_source_ids)
+                .gte("fetched_at", f"{today_str}T00:00:00+00:00")
+                .lt("fetched_at", f"{today_str}T23:59:59+00:00")
+                .execute()
+            ).count or 0,
         })
     except Exception as exc:
         return _db_error_response(request, exc)
@@ -312,7 +387,7 @@ def articles_list(
 # ── Manueller Run ──────────────────────────────────────────────────────────────
 
 @app.post("/run", response_class=RedirectResponse)
-def run_briefing():
+def run_briefing(_auth: None = Depends(_require_run_auth)):
     """
     Löst den täglichen Briefing-Lauf manuell aus (Phase 2–4).
     Danach Redirect zum Dashboard mit Status-Meldung.
@@ -415,7 +490,7 @@ def reddit_list(
 
 
 @app.post("/run-reddit", response_class=RedirectResponse)
-def run_reddit():
+def run_reddit(_auth: None = Depends(_require_run_auth)):
     """Löst den Reddit-Fetch + Analyse manuell aus."""
     from app.services.reddit_fetcher import fetch_all_reddit
     from app.services.reddit_analyzer import analyze_new_reddit_posts
@@ -435,4 +510,87 @@ def run_reddit():
     if errors:
         return RedirectResponse(url="/reddit?run_error=1", status_code=303)
     return RedirectResponse(url="/reddit?updated=1", status_code=303)
+
+
+# ── Research (arXiv) ───────────────────────────────────────────────────────────
+
+@app.get("/research", response_class=HTMLResponse)
+def research_list(
+    request: Request,
+    source_filter: Optional[str] = None,
+    date_filter: Optional[str] = None,
+    q: Optional[str] = None,
+    show: Optional[str] = None,  # "all" | "highlighted"
+):
+    try:
+        sb = get_supabase()
+        today_str = date.today().isoformat()
+
+        # arXiv-Quellen ermitteln
+        sources_res = sb.table("sources").select("id, name").eq("type", "arXiv").execute()
+        arxiv_sources = {r["id"]: r["name"] for r in sources_res.data}
+
+        if not arxiv_sources:
+            return templates.TemplateResponse(request, "research.html", context={
+                "papers": [], "arxiv_sources": {}, "selected_source": "",
+                "date_filter": "", "selected_date": today_str, "today": today_str,
+                "q": "", "show": show or "",
+            })
+
+        arxiv_source_ids = list(arxiv_sources.keys())
+
+        # Datum
+        if date_filter == "all":
+            selected_date = None
+        elif date_filter:
+            selected_date = date_filter
+        else:
+            selected_date = today_str
+
+        query = (
+            sb.table("articles")
+            .select("id, title, url, published_at, fetched_at, summary_raw, source_id")
+            .eq("is_duplicate", False)
+            .in_("source_id", arxiv_source_ids)
+            .order("published_at", desc=True)
+            .limit(300)
+        )
+
+        if selected_date:
+            query = (
+                query
+                .gte("fetched_at", f"{selected_date}T00:00:00+00:00")
+                .lt("fetched_at", f"{selected_date}T23:59:59+00:00")
+            )
+
+        if source_filter and source_filter in arxiv_sources:
+            query = query.eq("source_id", source_filter)
+
+        if q:
+            query = query.ilike("title", f"%{q}%")
+
+        res = query.execute()
+        papers = [_to_ns(a) for a in res.data]
+
+        # Source-Namen anhängen + Keywords markieren
+        for p in papers:
+            p.source_name = arxiv_sources.get(p.source_id, "arXiv")
+        papers = _highlight_research(papers)
+
+        # Wenn "highlighted" Filter aktiv: nur markierte zeigen
+        if show == "highlighted":
+            papers = [p for p in papers if p.highlighted]
+
+        return templates.TemplateResponse(request, "research.html", context={
+            "papers": papers,
+            "arxiv_sources": arxiv_sources,
+            "selected_source": source_filter or "",
+            "date_filter": date_filter or "",
+            "selected_date": selected_date or "",
+            "today": today_str,
+            "q": q or "",
+            "show": show or "",
+        })
+    except Exception as exc:
+        return _db_error_response(request, exc)
 

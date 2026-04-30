@@ -85,18 +85,24 @@ def generate_today(target_date: date | None = None) -> dict[str, Any] | None:
         sb.table("briefings").delete().eq("id", old_id).execute()
         print(f"  ↺ {len(new_analyses.data)}+ neue Analysen gefunden – Briefing wird neu generiert.")
 
+    # arXiv-Quellen aus Briefing ausschließen (Research-Seite behandelt diese separat)
+    arxiv_res = sb.table("sources").select("id").eq("type", "arXiv").execute()
+    arxiv_source_ids = [r["id"] for r in arxiv_res.data]
+
     # Analysierte Artikel der letzten 2 Tage laden (fetched heute oder gestern)
     since = (datetime.combine(target_date, datetime.min.time()) - timedelta(days=1)).replace(tzinfo=timezone.utc).isoformat()
     until = (datetime.combine(target_date, datetime.max.time())).replace(tzinfo=timezone.utc).isoformat()
 
-    articles_res = (
+    query = (
         sb.table("articles")
         .select("id, title, url, published_at, summary_raw, sources(name), article_analysis(*)")
         .eq("is_duplicate", False)
         .gte("fetched_at", since)
         .lte("fetched_at", until)
-        .execute()
     )
+    if arxiv_source_ids:
+        query = query.not_.in_("source_id", arxiv_source_ids)
+    articles_res = query.execute()
 
     articles = articles_res.data
     if not articles:

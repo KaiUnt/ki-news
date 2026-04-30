@@ -67,14 +67,14 @@ sources:
 
   - name: "arXiv cs.AI"
     url: "http://arxiv.org/rss/cs.AI"
-    type: "RSS"
+    type: "arXiv"
     category: "Forschung"
     language: "en"
     priority: 3
 
   - name: "arXiv cs.CL"
     url: "http://arxiv.org/rss/cs.CL"
-    type: "RSS"
+    type: "arXiv"
     category: "Forschung"
     language: "en"
     priority: 3

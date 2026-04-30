@@ -73,8 +73,8 @@ ai-briefing-app/
 │   ├── services/
 │   │   ├── source_loader.py      ← sources.yaml → DB (upsert)
 │   │   ├── source_fetcher.py     ← RSS-Abruf + Duplikaterkennung
-│   │   ├── ai_analyzer.py        ← OpenAI-Analyse je Artikel
-│   │   ├── briefing_generator.py ← Tagesbriefing generieren
+│   │   ├── ai_analyzer.py        ← OpenAI-Analyse je Artikel (exkl. arXiv)
+│   │   ├── briefing_generator.py ← Tagesbriefing generieren (exkl. arXiv)
 │   │   ├── reddit_fetcher.py     ← PRAW: hot + new Posts je Subreddit
 │   │   └── reddit_analyzer.py   ← OpenAI-Analyse Reddit-Posts (Community-Fokus)
 │   ├── templates/              ← Jinja2-Templates
@@ -99,9 +99,9 @@ ai-briefing-app/
 | 3 | OpenAI-Analyse (gpt-4o-mini), Scores speichern | ✅ |
 | 4 | Briefing-Generator, Dashboard, manueller Run | ✅ |
 | 5 | Reddit-Pipeline: Fetch (PRAW), eigene DB-Tabellen, KI-Analyse, eigener Tab | ✅ |
-| 6 | Reddit im Briefing (eigener Abschnitt) | ⏳ |
+| 6 | Research-Pipeline: arXiv getrennt, `/research`-Seite, collapsible Cards, Dashboard-Widget | ✅ |
 | 7 | Cronjob, Logging | ⏳ |
-| 8 | Suche, Filter, Deployment | ⏳ |
+| 8 | Briefing-Kuratierung, Duplikat-Bereinigung, Deployment | ⏳ |
 
 ---
 
@@ -109,7 +109,7 @@ ai-briefing-app/
 
 | Methode | Pfad | Beschreibung |
 |---------|------|--------------|
-| GET | `/` | Dashboard (aktuelles Briefing) |
+| GET | `/` | Dashboard (aktuelles Briefing + Research-Widget) |
 | GET | `/briefings` | Archiv aller Briefings |
 | GET | `/briefings/{id}` | Einzelnes Briefing |
 | GET | `/sources` | Quellenliste + Formular |
@@ -117,7 +117,8 @@ ai-briefing-app/
 | POST | `/sources/{id}/toggle` | Quelle aktivieren/deaktivieren |
 | GET | `/articles` | Artikelübersicht (Datumsfilter) |
 | GET | `/reddit` | Reddit-Posts (Filter: Subreddit, Sort, Datum) |
-| POST | `/run` | Manueller Briefing-Lauf (Phase 2–4) |
+| GET | `/research` | arXiv-Papers (collapsible, Keyword-Highlighting, Datumsfilter) |
+| POST | `/run` | Manueller Briefing-Lauf (Phase 2–4, exkl. arXiv) |
 | POST | `/run-reddit` | Manueller Reddit-Fetch + Analyse |
 | GET | `/health` | App-Status + DB-Check |
 
@@ -156,6 +157,20 @@ Die Reddit-Pipeline läuft **getrennt** von der News-Pipeline:
 - Eigener Refresh-Button
 | `MAX_INPUT_ARTICLES` | `briefing_generator.py` | Max. Artikel ans Briefing-Modell (Standard: 40) |
 | `MODEL` | `ai_analyzer.py` | OpenAI-Modell (Standard: gpt-4o-mini) |
+
+---
+
+## arXiv / Research-Pipeline
+
+arXiv-Quellen (`type: "arXiv"` in `sources.yaml`) werden **getrennt** von der Mainstream-Pipeline behandelt:
+
+- **Kein KI-Analyse-Aufwand:** arXiv-Artikel werden nicht durch `ai_analyzer.py` geschickt → keine OpenAI-Kosten
+- **Kein Briefing-Einfluss:** `briefing_generator.py` schließt arXiv-Quellen explizit aus
+- **Eigene Seite `/research`:** Alle arXiv-Papers mit vollem Abstract, collapsible Cards
+- **Keyword-Highlighting:** Papers mit Begriffen wie `agent`, `LLM`, `RAG`, `multimodal` etc. werden als ⭐ Highlight markiert
+- **Dashboard-Widget:** Top 5 Highlight-Papers des Tages direkt auf dem Dashboard sichtbar
+
+Neue arXiv-Feeds in `sources.yaml` einfach mit `type: "arXiv"` anlegen – der Rest passiert automatisch.
 
 ---
 

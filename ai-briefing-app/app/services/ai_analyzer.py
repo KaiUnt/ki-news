@@ -104,34 +104,44 @@ def analyze_new_articles(max_articles: int = MAX_ARTICLES_PER_RUN) -> dict[str, 
     sb = get_supabase()
     client = _get_client()
 
-    # Nur Artikel der letzten Tage betrachten – passt zur täglichen Lauffrequenz
-    # und vermeidet jeglichen künstlichen Puffer-Workaround.
+    # arXiv-Quellen aus Mainstream-Analyse ausschließen
+    arxiv_res = sb.table("sources").select("id").eq("type", "arXiv").execute()
+    arxiv_source_ids = [r["id"] for r in arxiv_res.data]
+
+    # Nur Artikel der letzten 24h betrachten – ein Lauf pro Tag reicht.
     fetch_cutoff = (
-        datetime.now(tz=timezone.utc) - timedelta(days=3)
+        datetime.now(tz=timezone.utc) - timedelta(hours=24)
     ).isoformat()
 
-    articles_res = (
+    query = (
         sb.table("articles")
         .select("id, title, summary_raw, content, published_at, source_id, sources(name)")
         .eq("is_duplicate", False)
         .gte("fetched_at", fetch_cutoff)
         .order("published_at", desc=True)
-        .execute()
     )
+    if arxiv_source_ids:
+        query = query.not_.in_("source_id", arxiv_source_ids)
+    articles_res = query.execute()
 
     if not articles_res.data:
         print("  Keine Artikel in der DB.")
         return {"analyzed": 0, "skipped": 0, "errors": 0}
 
     # Analyse-Status nur für diese Kandidaten abfragen
+    # In Chunks aufteilen, da PostgREST bei großen .in_()-Listen 400 zurückgibt
     candidate_ids = [a["id"] for a in articles_res.data]
-    analyzed_res = (
-        sb.table("article_analysis")
-        .select("article_id")
-        .in_("article_id", candidate_ids)
-        .execute()
-    )
-    analyzed_ids = {row["article_id"] for row in analyzed_res.data}
+    CHUNK_SIZE = 100
+    analyzed_ids: set[str] = set()
+    for chunk_start in range(0, len(candidate_ids), CHUNK_SIZE):
+        chunk = candidate_ids[chunk_start : chunk_start + CHUNK_SIZE]
+        chunk_res = (
+            sb.table("article_analysis")
+            .select("article_id")
+            .in_("article_id", chunk)
+            .execute()
+        )
+        analyzed_ids.update(row["article_id"] for row in chunk_res.data)
 
     # Noch nicht analysierte Artikel filtern, auf max_articles begrenzen
     to_analyze = [

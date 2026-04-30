@@ -118,4 +118,57 @@
     </p>
   </div>
 {% endif %}
+
+<!-- Research-Widget -->
+{% if research_papers %}
+<section class="mt-8">
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-semibold text-slate-700 flex items-center gap-2">
+      <span class="text-xl">🔬</span> Research Highlights heute
+    </h2>
+    <a href="/research" class="text-xs text-purple-600 hover:underline font-medium">
+      Alle {{ research_total }} Papers →
+    </a>
+  </div>
+  <div class="flex flex-col gap-2">
+    {% for paper in research_papers %}
+    <details class="bg-white border rounded-xl shadow-sm group
+                    {% if paper.highlighted %}border-purple-200{% else %}border-slate-200{% endif %}">
+      <summary class="flex items-start gap-3 p-4 cursor-pointer list-none
+                      hover:bg-slate-50 rounded-xl transition-colors">
+        <span class="mt-0.5 text-slate-400 group-open:rotate-90 transition-transform duration-200 flex-shrink-0 text-sm">▶</span>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1 flex-wrap">
+            {% if paper.highlighted %}
+            <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">⭐ Highlight</span>
+            {% endif %}
+            <span class="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{{ paper.source_name }}</span>
+          </div>
+          <p class="font-medium text-slate-800 leading-snug text-sm">{{ paper.title }}</p>
+          {% if paper.summary_raw %}
+          <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+            {{ paper.summary_raw[:180] }}{% if paper.summary_raw | length > 180 %}…{% endif %}
+          </p>
+          {% endif %}
+        </div>
+        <a href="{{ paper.url }}" target="_blank" rel="noopener"
+           class="flex-shrink-0 text-xs text-purple-600 hover:underline mt-0.5"
+           onclick="event.stopPropagation()">arXiv →</a>
+      </summary>
+      <div class="px-5 pb-4 pt-1 border-t border-slate-100">
+        {% if paper.summary_raw %}
+        <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ paper.summary_raw }}</p>
+        {% endif %}
+        <a href="{{ paper.url }}" target="_blank" rel="noopener"
+           class="mt-3 inline-block text-xs font-medium text-purple-600 hover:underline">
+          → Vollständiges Paper auf arXiv lesen
+        </a>
+      </div>
+    </details>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
 {% endblock %}
+

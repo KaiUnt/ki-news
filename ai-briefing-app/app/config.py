@@ -17,6 +17,14 @@ class Settings:
     REDDIT_CLIENT_SECRET: str = os.getenv("REDDIT_CLIENT_SECRET", "")
     REDDIT_USER_AGENT: str = os.getenv("REDDIT_USER_AGENT", "KI-News-Bot/1.0")
 
+    # Schutz der manuellen Run-Endpunkte (/run, /run-reddit)
+    # Wird nur erzwungen wenn APP_ENV=production und RUN_PASSWORD gesetzt ist.
+    RUN_PASSWORD: str = os.getenv("RUN_PASSWORD", "")
+
+    @property
+    def run_auth_enabled(self) -> bool:
+        return self.APP_ENV == "production" and bool(self.RUN_PASSWORD)
+
     @property
     def supabase_configured(self) -> bool:
         return bool(self.SUPABASE_URL and self.SUPABASE_SECRET_KEY)

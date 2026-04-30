@@ -15,6 +15,7 @@ Aufruf:
 import hashlib
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from urllib.parse import urlparse, urlunparse
 
 import feedparser
 import requests
@@ -28,9 +29,14 @@ USER_AGENT = "KI-News-Bot/1.0"
 MAX_ARTICLE_AGE_DAYS = 2
 
 
-def _make_hash(title: str, url: str) -> str:
-    """SHA-256 aus Titel + URL zur Duplikaterkennung."""
-    raw = f"{title.strip().lower()}|{url.strip().lower()}"
+def _make_hash(title: str, url: str, source_id: str = "") -> str:
+    """SHA-256 aus source_id + Titel + URL (ohne Query-Parameter) zur Duplikaterkennung.
+    Query-Parameter werden entfernt damit Tracking-Suffixe (z.B. ?wt_mc=rss...) keine
+    Duplikate erzeugen.
+    """
+    parsed = urlparse(url.strip().lower())
+    clean_url = urlunparse((parsed.scheme, parsed.netloc, parsed.path, "", "", ""))
+    raw = f"{source_id}|{title.strip().lower()}|{clean_url}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -127,7 +133,7 @@ def _fetch_rss(source: dict) -> list[dict[str, Any]]:
                 "summary_raw": summary[:4000] if summary else None,
                 "content": content_text,
                 "language": language,
-                "hash": _make_hash(title, link),
+                "hash": _make_hash(title, link, source_id),
                 "is_duplicate": False,
             }
         )
