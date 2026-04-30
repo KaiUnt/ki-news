@@ -7,13 +7,7 @@
     <h1 class="text-2xl font-bold text-slate-900">KI-News Briefing</h1>
     <p class="text-slate-500 text-sm mt-1">{{ today.strftime('%d.%m.%Y') }}</p>
   </div>
-  <!-- Manueller Run -->
-  <form method="post" action="/run">
-    <button type="submit"
-      class="bg-brand-700 hover:bg-brand-900 text-white text-sm font-medium px-4 py-2 rounded-lg shadow transition-colors">
-      ▶ Briefing jetzt aktualisieren
-    </button>
-  </form>
+  <!-- Run-Button deaktiviert (läuft täglich automatisch um 07:00) -->
 </div>
 
 {% if request.query_params.get('updated') %}
