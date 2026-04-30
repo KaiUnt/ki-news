@@ -8,7 +8,7 @@
 set -euo pipefail
 
 DOMAIN="news.kais.world"
-EMAIL="kai@world-direct.at"   # <- für Let's Encrypt Benachrichtigungen anpassen
+EMAIL="kai.unterrainer@gmx.net"
 APP_DIR="/opt/ki-news"
 REPO="https://github.com/KaiUnt/ki-news.git"
 
