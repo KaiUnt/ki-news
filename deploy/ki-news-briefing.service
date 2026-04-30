@@ -1,0 +1,10 @@
+[Unit]
+Description=KI-News täglicher Briefing-Lauf
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker exec ki-news-app python scripts/run_daily_briefing.py
+StandardOutput=journal
+StandardError=journal

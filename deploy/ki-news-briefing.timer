@@ -1,0 +1,11 @@
+[Unit]
+Description=KI-News täglicher Briefing-Lauf (Timer)
+
+[Timer]
+# Jeden Tag um 07:00 Uhr Serverzeit
+OnCalendar=*-*-* 07:00:00
+# Falls der Server zum geplanten Zeitpunkt aus war, beim nächsten Start nachholen
+Persistent=true
+
+[Install]
+WantedBy=timers.target
