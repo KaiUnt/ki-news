@@ -1,0 +1,12 @@
+[Unit]
+Description=KI-News täglicher Briefing-Lauf
+After=network.target
+
+[Service]
+Type=oneshot
+User=SERVICE_USER_PLACEHOLDER
+WorkingDirectory=APP_DIR_PLACEHOLDER/ai-briefing-app
+ExecStart=APP_DIR_PLACEHOLDER/ai-briefing-app/.venv/bin/python scripts/run_daily_briefing.py
+EnvironmentFile=APP_DIR_PLACEHOLDER/ai-briefing-app/.env
+StandardOutput=journal
+StandardError=journal

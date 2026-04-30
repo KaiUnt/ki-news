@@ -1,0 +1,16 @@
+[Unit]
+Description=KI-News Briefing App (uvicorn)
+After=network.target
+
+[Service]
+User=SERVICE_USER_PLACEHOLDER
+WorkingDirectory=APP_DIR_PLACEHOLDER/ai-briefing-app
+ExecStart=APP_DIR_PLACEHOLDER/ai-briefing-app/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port APP_PORT_PLACEHOLDER
+Restart=on-failure
+RestartSec=5
+EnvironmentFile=APP_DIR_PLACEHOLDER/ai-briefing-app/.env
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

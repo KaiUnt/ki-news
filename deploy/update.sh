@@ -10,8 +10,11 @@ APP_DIR="/opt/ki-news"
 echo "▶ Update: git pull …"
 git -C "$APP_DIR" pull
 
-echo "▶ App neu bauen und starten …"
-docker compose -f "$APP_DIR/docker-compose.yml" up -d --build app
+echo "▶ Abhängigkeiten aktualisieren …"
+"$APP_DIR/ai-briefing-app/.venv/bin/pip" install --quiet -r "$APP_DIR/ai-briefing-app/requirements.txt"
+
+echo "▶ App neu starten …"
+systemctl restart ki-news-app
 
 echo "✓ Update abgeschlossen"
-docker compose -f "$APP_DIR/docker-compose.yml" ps
+systemctl status ki-news-app --no-pager
